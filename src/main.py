@@ -5,12 +5,14 @@ import streamlit as st
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from io import BytesIO
+from urllib.error import URLError
 
 
 # configures general page layout
 st.set_page_config(layout='wide', page_title="Currency Dashboard")
 st.title('_:blue[Currency] Dashboard_')
 settings, result = st.columns([0.2, 0.8])
+
 # configures seaborn theme
 sns.set_theme(rc={
     'figure.facecolor': '#0e1117',
@@ -47,14 +49,15 @@ with settings:
         # don't show anything if last data load failed
         st.session_state['data_ready'] = False
 
-        # formats code to remove spaces and make it upper case
+        # formats code to remove whitespace and make it upper case
         formatted_code = st.session_state['analyser'].format_code(
             currency_code
         )
+
+        # saves which currency the data is for
+        st.session_state['currency'] = formatted_code
         
         try:
-            # saves which currency the data is for
-            st.session_state['currency'] = formatted_code
             # gets url_extension
             current_date = date.today()
             url_extension = st.session_state['analyser'].get_extension(
@@ -62,12 +65,16 @@ with settings:
                 current_date,
                 formatted_code,
             )
+
             # tries to get data, if successful updates session state
             st.session_state['df'] = (
                 st.session_state['analyser'].download_data(url_extension)
             )
+            
             # data loaded successfully
             st.session_state['data_ready'] = True
+        except URLError:
+            st.write('Error downloading data from API')
         except Exception:
             st.write('Unexpected error occurred')
     
@@ -80,7 +87,7 @@ with settings:
 
 with result:
     if st.session_state['data_ready']:
-        # sets header as the name of the stock
+        # display the code of the current currency
         st.header(f'Analysis for Currency: {st.session_state['currency']}')
         
         data_tab, chart_tab = st.tabs(['🗂️ Data', '📈 Plots'])
@@ -90,6 +97,7 @@ with result:
             df_display = df_display.set_index('effectiveDate')
             df_display.index = df_display.index.date
             df_display.index.name = None
+
             # displays a preview of the data
             st.subheader('Raw Data')
             st.write(df_display.tail(row_num))
@@ -103,8 +111,8 @@ with result:
             )
 
         with chart_tab:
-            st.subheader('Histogram of Rates')
             # displays histograms of bid and ask rates
+            st.subheader('Histogram of Rates')
             hist_fig = st.session_state['analyser'].draw_histograms(
                 st.session_state['df']
             )
