@@ -203,7 +203,7 @@ class NBPAnalyser(DataDownloader):
         # makes sure the date is interpreted as datetime
         data['effectiveDate'] = pd.to_datetime(data['effectiveDate'])
 
-        # removes NBP ID to index or moves it to index
+        # removes NBP ID or moves it to index
         if self._drop_id:
             data = data.drop('no', axis=1)
         else:
@@ -219,7 +219,7 @@ class NBPAnalyser(DataDownloader):
         """Downloads data from NBP API given url_extension
         created by get_extension or manually, it has the format
         <code>/<start_date>/<end_date>?format=json (dates are
-        in the %Y-%m-%d)"""
+        in the %Y-%m-%d format)"""
         # downloads data in json format
         resp = urlopen(self._base_url + url_extension, timeout=self._timeout)
         json_result = resp.read()
